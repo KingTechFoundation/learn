@@ -1,28 +1,46 @@
 const express = require('express');
 const db = require('./config/db'); // MySQL connection
-const app = express();
 const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
+const dotenv = require('dotenv');
+const app = express();
+
+dotenv.config(); // Load environment variables
+
 const Port = process.env.PORT || 5000; // Set a default port if not in .env
 
-require('dotenv').config(); // Load environment variables
+// Define allowed origins
+const allowedOrigins = [
+  'http://localhost:5173', // Development origin
+  'https://elearningplatiform.netlify.app/', // Production origin (Netlify)
+];
 
-// CORS Configuration
+// Define CORS options
 const corsOptions = {
-  origin: [
-    'http://localhost:3000', // Allow your local development server (adjust if necessary)
-    'https://elearningplatiform.netlify.app', // Allow your Netlify frontend
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+  origin: function (origin, callback) {
+    // Allow requests from allowedOrigins or requests without an origin (like Postman)
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies or authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
 
-app.use(express.json());
+// Middleware
+app.use(express.json()); // Parse JSON request bodies
 app.use(cors(corsOptions)); // Apply CORS configuration
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 
 // Routes
 app.use('/api/users', userRoutes); // Attach the user routes
 
+// Start server
 app.listen(Port, () => {
   console.log(`Server listening on port ${Port}`);
 });
