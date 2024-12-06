@@ -11,14 +11,13 @@ const Port = process.env.PORT || 5000; // Set a default port if not in .env
 
 // Define allowed origins
 const allowedOrigins = [
-  'http://localhost:5173', // Development origin
-  'https://elearningplatiform.netlify.app/', // Production origin (Netlify)
+  'http://localhost:5173', // Local development
+  'https://elearningplatiform.netlify.app', // Netlify production frontend
 ];
 
-// Define CORS options
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from allowedOrigins or requests without an origin (like Postman)
+    // Allow requests from allowedOrigins or those without an origin (like Postman)
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
@@ -26,13 +25,12 @@ const corsOptions = {
     }
   },
   credentials: true, // Allow cookies or authorization headers
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
+
+app.use(cors(corsOptions)); // Apply CORS middleware
 
 // Middleware
 app.use(express.json()); // Parse JSON request bodies
-app.use(cors(corsOptions)); // Apply CORS configuration
 
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
