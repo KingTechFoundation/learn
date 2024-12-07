@@ -1,23 +1,21 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
-// Create MySQL connection
-const db = mysql.createConnection({
+// MySQL configuration
+const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-});
+  connectionLimit: 10, // For pooling
+};
 
-// Connect to the database
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database:', err.stack);
-    return;
-  }
-  console.log('Connected to the database.');
+// Create a MySQL connection pool
+const db = mysql.createPool(dbConfig);
 
-  const createUsersTable = `
+// Function to ensure the table is created
+const createUsersTable = () => {
+  const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
       user_id INT AUTO_INCREMENT PRIMARY KEY,
       full_name VARCHAR(100) NOT NULL,
@@ -45,13 +43,38 @@ db.connect((err) => {
     );
   `;
 
-  db.query(createUsersTable, (err, result) => {
+  db.query(createTableQuery, (err, result) => {
     if (err) {
-      console.error('Error creating users table:', err.stack);
+      console.error('Error creating users table:', err);
     } else {
       console.log('Users table created or already exists.');
     }
   });
-});
+};
+
+// Initialize connection and create table
+const initializeDatabase = () => {
+  db.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error connecting to the database:', err.stack);
+      return;
+    }
+    console.log('Connected to the database.');
+    createUsersTable(); // Ensure the table exists
+    connection.release(); // Release the connection back to the pool
+  });
+
+  // Handle errors in the connection pool
+  db.on('error', (err) => {
+    console.error('Database error:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.error('Database connection lost. Reconnecting...');
+      initializeDatabase();
+    }
+  });
+};
+
+// Initialize database
+initializeDatabase();
 
 module.exports = db;
