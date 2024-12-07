@@ -8,16 +8,18 @@ const app = express();
 dotenv.config(); // Load environment variables
 
 const Port = process.env.PORT || 5000; // Set a default port if not in .env
+app.use(express.json()); // Parse JSON request bodies
 
 // Define allowed origins
+
 const allowedOrigins = [
-  'http://localhost:5173', // Local development
-  'https://elearningplatiform.netlify.app', // Netlify production frontend
+  'http://localhost:5173', // Development origin
+  'https://elearningplatiform.netlify.app', // Production origin (Netlify)
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from allowedOrigins or those without an origin (like Postman)
+    // Allow requests from allowedOrigins or requests without an origin (like Postman)
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
@@ -27,14 +29,15 @@ const corsOptions = {
   credentials: true, // Allow cookies or authorization headers
 };
 
-app.use(cors(corsOptions)); // Apply CORS middleware
-
-// Middleware
-app.use(express.json()); // Parse JSON request bodies
+// Use CORS middleware in your Express app
+app.use(cors(corsOptions));
 
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
+// Middleware
+app.use(express.json()); // Parse JSON request bodies
 // Routes
 app.use('/api/users', userRoutes); // Attach the user routes
 
