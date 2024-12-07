@@ -11,7 +11,6 @@ const Port = process.env.PORT || 5000; // Set a default port if not in .env
 app.use(express.json()); // Parse JSON request bodies
 
 // Define allowed origins
-
 const allowedOrigins = [
   'http://localhost:5173', // Development origin
   'https://elearningplatiform.netlify.app', // Production origin (Netlify)
@@ -34,10 +33,7 @@ app.use(cors(corsOptions));
 
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
-app.use(cors(corsOptions));
 
-// Middleware
-app.use(express.json()); // Parse JSON request bodies
 // Routes
 app.use('/api/users', userRoutes); // Attach the user routes
 
