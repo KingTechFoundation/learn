@@ -17,6 +17,7 @@ db.connect((err) => {
   }
   console.log('Connected to the database.');
 
+  // SQL to create users table
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
       user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,11 +46,26 @@ db.connect((err) => {
     );
   `;
 
+  // Create users table if it doesn't exist
   db.query(createUsersTable, (err, result) => {
     if (err) {
       console.error('Error creating users table:', err.stack);
     } else {
       console.log('Users table created or already exists.');
+    }
+  });
+
+  // SQL to truncate the users table
+  const truncateUsersTable = `
+    TRUNCATE TABLE users;
+  `;
+
+  // Truncate the users table
+  db.query(truncateUsersTable, (err, result) => {
+    if (err) {
+      console.error('Error truncating users table:', err.stack);
+    } else {
+      console.log('Users table truncated successfully.');
     }
   });
 });
