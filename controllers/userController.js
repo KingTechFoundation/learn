@@ -231,7 +231,23 @@ const userController = {
     });
   },
 
+  // **New Method to Update User's Online Status**
+  updateOnlineStatus: (userId, status, callback) => {
+    const query = `
+    UPDATE users SET is_online = ?, last_online_at = NOW() WHERE user_id = ?
+  `;
+    db.query(query, [status, userId], (err, result) => {
+      if (err) {
+        console.error('Error updating online status:', err);
+        return callback(err, null);
+      }
+
+      callback(null, result);
+    });
+  },
+
   // Login and generate JWT token
+
   login: async (req, res) => {
     const { email, password } = req.body;
 
@@ -271,27 +287,61 @@ const userController = {
             .json({ message: 'Invalid email or password.' });
         }
 
-        // Generate a JWT token
-        const token = jwt.sign(
-          { id: user.id, full_name: user.full_name, email: user.email },
-          process.env.JWT_SECRET, // Secret key for JWT
-          { expiresIn: '1h' } // Token expiration time
-        );
+        // Update the user's online status to true
+        userController.updateOnlineStatus(user.user_id, true, (err, result) => {
+          if (err) {
+            return res
+              .status(500)
+              .json({ message: 'Error updating online status.' });
+          }
 
-        res.status(200).json({
-          message: 'Login successful.',
-          token,
-          user: {
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-          },
+          // Generate a JWT token
+          const token = jwt.sign(
+            { id: user.user_id, full_name: user.full_name, email: user.email },
+            process.env.JWT_SECRET, // Secret key for JWT
+            { expiresIn: '1h' } // Token expiration time
+          );
+
+          res.status(200).json({
+            message: 'Login successful.',
+            token,
+            user: {
+              id: user.user_id,
+              full_name: user.full_name,
+              email: user.email,
+            },
+          });
         });
       });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: 'Server error.' });
     }
+  },
+
+  getOnlineUsers: async (req, res) => {
+    try {
+      // Example: Fetch all users that are marked as online in the database or session
+      const onlineUsers = await User.find({ is_online: true }); // Example query
+      res.status(200).json(onlineUsers);
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  },
+
+  logout: (req, res) => {
+    const userId = req.user.id; // Assuming user ID is in the JWT token
+
+    userController.updateOnlineStatus(userId, false, (err, result) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ message: 'Error updating online status.' });
+      }
+
+      res.status(200).json({ message: 'Logout successful.' });
+    });
   },
 };
 

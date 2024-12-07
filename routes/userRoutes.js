@@ -21,4 +21,9 @@ router.post('/reset-password/:token', userController.resetPassword);
 // Login route
 router.post('/login', userController.login);
 
+router.get('/online-users', userController.getOnlineUsers);
+
+// Logout route - marks the user as offline
+router.post('/logout', userController.logout);
+
 module.exports = router;
