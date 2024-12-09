@@ -93,11 +93,8 @@ const userController = {
         return res.status(400).json({ message: 'Invalid or expired token.' });
       }
 
-      // Successfully verified the email
-      res.status(200).json({ message: 'Email verified successfully.' });
-
-      // Redirect to the login page after verification
-      res.redirect('/login');
+      // Redirect to the login page on successful verification
+      res.redirect('https://elearningplatiform.netlify.app/login');
     });
   },
 
