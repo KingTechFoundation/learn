@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const verifyEmailTemplate = require('../templates/verifyEmailTemplate');
+const resetPasswordEmailTemplate = require('../templates/resetPasswordEmailTemplate');
 require('dotenv').config(); // Load environment variables
 const jwt = require('jsonwebtoken'); // Import jwt
 
@@ -128,7 +129,7 @@ const userController = {
           return res.status(404).json({ message: 'Email not found.' });
         }
 
-        const resetUrl = `http://localhost:5000/api/users/reset-password/${resetToken}`;
+        const resetUrl = `https://elearningplatiform.netlify.app/reset-password/${resetToken}`;
         const transporter = nodemailer.createTransport({
           service: process.env.MAIL_SERVICE,
           auth: {
@@ -141,7 +142,7 @@ const userController = {
           from: process.env.MAIL_USER,
           to: email,
           subject: 'Password Reset Request',
-          text: `Reset your password using this link: ${resetUrl}`,
+          html: resetPasswordEmailTemplate(resetUrl),
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
@@ -318,15 +319,19 @@ const userController = {
 
   getOnlineUsers: async (req, res) => {
     try {
-      // Example: Fetch all users that are marked as online in the database or session
-      const onlineUsers = await User.find({ is_online: true }); // Example query
-      res.status(200).json(onlineUsers);
+      const query = 'SELECT * FROM users WHERE is_online = 1'; // Query to fetch online users
+      db.query(query, (err, results) => {
+        if (err) {
+          console.error('Error fetching online users:', err);
+          return res.status(500).json({ message: 'Internal server error' });
+        }
+        res.status(200).json(results); // Send the fetched results as the response
+      });
     } catch (error) {
       console.error('Error fetching online users:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   },
-
   logout: (req, res) => {
     const userId = req.user.id; // Assuming user ID is in the JWT token
 
