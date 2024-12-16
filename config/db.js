@@ -1,19 +1,19 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
-// MySQL configuration
+
 const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  connectionLimit: 10, // For pooling
+  connectionLimit: 10,
 };
 
-// Create a MySQL connection pool
+
 const db = mysql.createPool(dbConfig);
 
-// Function to ensure the table is created
+
 const createUsersTable = () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
@@ -52,7 +52,7 @@ const createUsersTable = () => {
   });
 };
 
-// Initialize connection and create table
+
 const initializeDatabase = () => {
   db.getConnection((err, connection) => {
     if (err) {
@@ -60,11 +60,11 @@ const initializeDatabase = () => {
       return;
     }
     console.log('Connected to the database.');
-    createUsersTable(); // Ensure the table exists
-    connection.release(); // Release the connection back to the pool
+    createUsersTable(); 
+    connection.release(); 
   });
 
-  // Handle errors in the connection pool
+  
   db.on('error', (err) => {
     console.error('Database error:', err);
     if (err.code === 'PROTOCOL_CONNECTION_LOST') {
@@ -74,7 +74,7 @@ const initializeDatabase = () => {
   });
 };
 
-// Initialize database
+
 initializeDatabase();
 
 module.exports = db;

@@ -4,8 +4,10 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const verifyEmailTemplate = require('../templates/verifyEmailTemplate');
 const resetPasswordEmailTemplate = require('../templates/resetPasswordEmailTemplate');
-require('dotenv').config(); // Load environment variables
-const jwt = require('jsonwebtoken'); // Import jwt
+
+require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const authenticateJWT = require('../middleware/authenticateJWT');
 
 const userController = {
   signup: async (req, res) => {
@@ -49,6 +51,7 @@ const userController = {
             });
 
             const verificationUrl = `https://learn-y7lz.onrender.com/api/users/verify-email/${verificationToken}`;
+
             const mailOptions = {
               from: process.env.MAIL_USER,
               to: email,
@@ -332,19 +335,26 @@ const userController = {
       res.status(500).json({ message: 'Internal server error' });
     }
   },
-  logout: (req, res) => {
-    const userId = req.user.id; // Assuming user ID is in the JWT token
-
-    userController.updateOnlineStatus(userId, false, (err, result) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ message: 'Error updating online status.' });
+  logout: [
+    authenticateJWT,
+    (req, res) => {
+      if (!req.user || !req.user.id) {
+        return res.status(400).json({ message: 'User not logged in' });
       }
 
-      res.status(200).json({ message: 'Logout successful.' });
-    });
-  },
+      const userId = req.user.id;
+
+      userController.updateOnlineStatus(userId, false, (err, result) => {
+        if (err) {
+          return res
+            .status(500)
+            .json({ message: 'Error updating online status.' });
+        }
+
+        res.status(200).json({ message: 'Logout successful.' });
+      });
+    },
+  ],
 };
 
 module.exports = userController;
