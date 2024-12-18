@@ -1,7 +1,6 @@
 const mysql = require('mysql');
 require('dotenv').config();
 
-
 const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -10,10 +9,9 @@ const dbConfig = {
   connectionLimit: 10,
 };
 
-
 const db = mysql.createPool(dbConfig);
 
-
+// Function to create the 'users' table if it doesn't exist
 const createUsersTable = () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
@@ -52,7 +50,30 @@ const createUsersTable = () => {
   });
 };
 
+// Function to create the 'user_sessions' table if it doesn't exist
+const createUserSessionsTable = () => {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      session_id VARCHAR(512) PRIMARY KEY,  -- JWT session ID or a unique session identifier
+      user_id INT,  -- Reference to the user
+      device_id VARCHAR(255),  -- Unique identifier for the device (could be the user-agent or a custom generated ID)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when session is created
+      last_activity_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when the session was last active
+      expires_at DATETIME,  -- Timestamp when the session expires
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE  -- Cascade delete if user is deleted
+    );
+  `;
 
+  db.query(createTableQuery, (err, result) => {
+    if (err) {
+      console.error('Error creating user_sessions table:', err);
+    } else {
+      console.log('User_sessions table created or already exists.');
+    }
+  });
+};
+
+// Function to initialize the database and create necessary tables
 const initializeDatabase = () => {
   db.getConnection((err, connection) => {
     if (err) {
@@ -60,11 +81,14 @@ const initializeDatabase = () => {
       return;
     }
     console.log('Connected to the database.');
-    createUsersTable(); 
-    connection.release(); 
+
+    // Create users and user_sessions tables
+    createUsersTable();
+    createUserSessionsTable();
+
+    connection.release();
   });
 
-  
   db.on('error', (err) => {
     console.error('Database error:', err);
     if (err.code === 'PROTOCOL_CONNECTION_LOST') {
@@ -73,7 +97,6 @@ const initializeDatabase = () => {
     }
   });
 };
-
 
 initializeDatabase();
 

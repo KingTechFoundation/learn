@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const verifyEmailTemplate = require('../templates/verifyEmailTemplate');
 const resetPasswordEmailTemplate = require('../templates/resetPasswordEmailTemplate');
+const authenticateDeviceSession = require('../middleware/authenticateDeviceSession');
 
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
@@ -259,7 +260,6 @@ const userController = {
     }
 
     try {
-      // Check if the user exists
       const findUserQuery = 'SELECT * FROM users WHERE email = ?';
       db.query(findUserQuery, [email], async (err, results) => {
         if (err) {
@@ -273,14 +273,12 @@ const userController = {
 
         const user = results[0];
 
-        // Check if the user has verified their email
         if (!user.is_verified) {
           return res
             .status(403)
             .json({ message: 'Please verify your email before logging in.' });
         }
 
-        // Validate the password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
           return res
@@ -288,31 +286,37 @@ const userController = {
             .json({ message: 'Invalid email or password.' });
         }
 
-        // Update the user's online status to true
-        userController.updateOnlineStatus(user.user_id, true, (err, result) => {
-          if (err) {
-            return res
-              .status(500)
-              .json({ message: 'Error updating online status.' });
+        // Generate a unique session ID for the device (using user-agent as an example)
+        const deviceId = req.headers['user-agent']; // You could generate a more unique identifier if needed
+        const sessionId = jwt.sign(
+          { id: user.user_id, deviceId },
+          process.env.JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+
+        // Store session ID associated with the user and device in your session store (e.g., in a DB)
+        const storeSessionQuery =
+          'INSERT INTO user_sessions (user_id, session_id, device_id) VALUES (?, ?, ?)';
+        db.query(
+          storeSessionQuery,
+          [user.user_id, sessionId, deviceId],
+          (err) => {
+            if (err) {
+              console.error('Error storing session:', err);
+              return res.status(500).json({ message: 'Server error.' });
+            }
+
+            res.status(200).json({
+              message: 'Login successful.',
+              token: sessionId,
+              user: {
+                id: user.user_id,
+                full_name: user.full_name,
+                email: user.email,
+              },
+            });
           }
-
-          // Generate a JWT token
-          const token = jwt.sign(
-            { id: user.user_id, full_name: user.full_name, email: user.email },
-            process.env.JWT_SECRET, // Secret key for JWT
-            { expiresIn: '1h' } // Token expiration time
-          );
-
-          res.status(200).json({
-            message: 'Login successful.',
-            token,
-            user: {
-              id: user.user_id,
-              full_name: user.full_name,
-              email: user.email,
-            },
-          });
-        });
+        );
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -349,6 +353,32 @@ const userController = {
           return res
             .status(500)
             .json({ message: 'Error updating online status.' });
+        }
+
+        res.status(200).json({ message: 'Logout successful.' });
+      });
+    },
+  ],
+
+  logout: [
+    authenticateDeviceSession, // Ensure the session is valid and tied to the device
+    (req, res) => {
+      const userId = req.user.id;
+      const sessionId = req.headers['authorization']?.split(' ')[1]; // Get session ID from Authorization header
+
+      if (!userId || !sessionId) {
+        return res
+          .status(400)
+          .json({ message: 'User not logged in or session invalid.' });
+      }
+
+      // Invalidate the session by deleting it from the session store
+      const deleteSessionQuery =
+        'DELETE FROM user_sessions WHERE user_id = ? AND session_id = ?';
+      db.query(deleteSessionQuery, [userId, sessionId], (err) => {
+        if (err) {
+          console.error('Error deleting session:', err);
+          return res.status(500).json({ message: 'Server error.' });
         }
 
         res.status(200).json({ message: 'Logout successful.' });
