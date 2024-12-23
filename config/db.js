@@ -49,6 +49,19 @@ const createUsersTable = () => {
   });
 };
 
+// Function to truncate the 'users' table (removes all rows but keeps the structure)
+const truncateUsersTable = () => {
+  const truncateQuery = 'TRUNCATE TABLE users';
+
+  db.query(truncateQuery, (err, result) => {
+    if (err) {
+      console.error('Error truncating users table:', err);
+    } else {
+      console.log('Users table truncated.');
+    }
+  });
+};
+
 // Function to drop the 'user_sessions' table permanently
 const dropUserSessionsTable = () => {
   const dropTableQuery = 'DROP TABLE IF EXISTS user_sessions';
@@ -84,6 +97,9 @@ const initializeDatabase = () => {
     }
   });
 };
+
+// Call to truncate the users table (for testing or when needed)
+truncateUsersTable();
 
 // Call to drop the user_sessions table permanently (for testing or when needed)
 dropUserSessionsTable();
