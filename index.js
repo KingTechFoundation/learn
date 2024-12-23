@@ -36,7 +36,7 @@ app.use(cors(corsOptions));
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
 
-app.use('/api/users', userRoutes); 
+app.use('/api/users', userRoutes);
 
 app.listen(Port, () => {
   console.log(`Server listening on port ${Port}`);

@@ -11,7 +11,6 @@ const dbConfig = {
 
 const db = mysql.createPool(dbConfig);
 
-// Function to create the 'users' table if it doesn't exist
 const createUsersTable = () => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
@@ -50,30 +49,19 @@ const createUsersTable = () => {
   });
 };
 
-// Function to create the 'user_sessions' table if it doesn't exist
-const createUserSessionsTable = () => {
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS user_sessions (
-      session_id VARCHAR(512) PRIMARY KEY,  -- JWT session ID or a unique session identifier
-      user_id INT,  -- Reference to the user
-      device_id VARCHAR(255),  -- Unique identifier for the device (could be the user-agent or a custom generated ID)
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when session is created
-      last_activity_at DATETIME DEFAULT CURRENT_TIMESTAMP,  -- Timestamp when the session was last active
-      expires_at DATETIME,  -- Timestamp when the session expires
-      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE  -- Cascade delete if user is deleted
-    );
-  `;
+// Function to drop the 'user_sessions' table permanently
+const dropUserSessionsTable = () => {
+  const dropTableQuery = 'DROP TABLE IF EXISTS user_sessions';
 
-  db.query(createTableQuery, (err, result) => {
+  db.query(dropTableQuery, (err, result) => {
     if (err) {
-      console.error('Error creating user_sessions table:', err);
+      console.error('Error dropping user_sessions table:', err);
     } else {
-      console.log('User_sessions table created or already exists.');
+      console.log('User_sessions table dropped permanently.');
     }
   });
 };
 
-// Function to initialize the database and create necessary tables
 const initializeDatabase = () => {
   db.getConnection((err, connection) => {
     if (err) {
@@ -82,9 +70,8 @@ const initializeDatabase = () => {
     }
     console.log('Connected to the database.');
 
-    // Create users and user_sessions tables
+    // Create users table only (no user_sessions table creation here)
     createUsersTable();
-    createUserSessionsTable();
 
     connection.release();
   });
@@ -97,6 +84,9 @@ const initializeDatabase = () => {
     }
   });
 };
+
+// Call to drop the user_sessions table permanently (for testing or when needed)
+dropUserSessionsTable();
 
 initializeDatabase();
 
